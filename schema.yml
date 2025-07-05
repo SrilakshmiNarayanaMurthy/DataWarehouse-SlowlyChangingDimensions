@@ -1,0 +1,179 @@
+version: 2
+
+sources:
+  - name: customer_schema
+    database: CUSTOMER_DATA
+    schema: CUSTOMER_SCHEMA
+    tables:
+      - name: customers_parsed
+        description: "Raw customer data source"
+
+models:
+  - name: scd1_customers
+    description: "SCD Type 1: overwrites existing data with the latest version"
+    columns:
+      - name: customer_id
+        description: "Unique customer ID"
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_name
+        description: "Customer name"
+        tests:
+          - not_null
+
+      - name: email
+        description: "Customer email"
+        tests:
+          - not_null
+
+      - name: active
+        description: "Active status"
+        tests:
+          - accepted_values:
+              values: [TRUE, FALSE]
+
+  - name: scd2_customers
+    description: "SCD Type 2: tracks historical changes with flags and dates"
+    columns:
+      - name: customer_id
+        description: "Unique customer ID"
+        tests:
+          - not_null
+
+      - name: customer_name
+        description: "Customer name"
+        tests:
+          - not_null
+
+      - name: email
+        description: "Customer email"
+        tests:
+          - not_null
+
+      - name: join_date
+        description: "Customer join date"
+
+      - name: active
+        description: "Active status"
+        tests:
+          - accepted_values:
+              values: [TRUE, FALSE]
+
+      - name: load_date
+        description: "The date when this record version was loaded"
+        tests:
+          - not_null
+
+      - name: current_flag
+        description: "Flag to indicate if this is the current record"
+        tests:
+          - accepted_values:
+              values: [TRUE, FALSE]
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - customer_id
+            - load_date
+
+  - name: scd3_customers
+    description: "SCD Type 3: tracks limited historical changes by adding new columns"
+    columns:
+      - name: customer_id
+        description: "Unique customer ID"
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_name
+        description: "Current customer name"
+        tests:
+          - not_null
+
+      - name: prev_customer_name
+        description: "Previous customer name"
+
+      - name: email
+        description: "Current customer email"
+        tests:
+          - not_null
+
+      - name: prev_email
+        description: "Previous email address"
+
+      - name: join_date
+        description: "Join date"
+
+      - name: active
+        description: "Active status"
+        tests:
+          - accepted_values:
+              values: [TRUE, FALSE]
+
+  - name: scd4_customers_current
+    description: "SCD Type 4: current snapshot of customer data"
+    columns:
+      - name: customer_id
+        description: "Unique customer ID"
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_name
+        description: "Customer name"
+        tests:
+          - not_null
+
+      - name: email
+        description: "Customer email"
+        tests:
+          - not_null
+
+      - name: join_date
+        description: "Join date"
+
+      - name: active
+        description: "Active status"
+        tests:
+          - accepted_values:
+              values: [TRUE, FALSE]
+
+  - name: scd4_customers_history
+    description: "SCD Type 4: holds historical snapshots of old customer data"
+    columns:
+      - name: customer_id
+        description: "Unique customer ID"
+        tests:
+          - not_null
+
+      - name: customer_name
+        description: "Previous customer name"
+        tests:
+          - not_null
+
+      - name: email
+        description: "Previous email address"
+        tests:
+          - not_null
+
+      - name: join_date
+        description: "Previous join date"
+
+      - name: active
+        description: "Previous active flag"
+        tests:
+          - accepted_values:
+              values: [TRUE, FALSE]
+
+      - name: archived_at_scd4
+        description: "Timestamp when this version was archived"
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - customer_id
+            - archived_at_scd4
